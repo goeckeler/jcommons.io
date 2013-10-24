@@ -1,5 +1,7 @@
 package org.jcommons.io.text;
 
+import static org.jcommons.io.text.GridFactory.createComplexGrid;
+import static org.jcommons.io.text.GridFactory.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -13,48 +15,12 @@ import org.junit.*;
 /** Check that default spreadsheet implementation for a table holds the contract */
 public class SpreadsheetTest
 {
-  private Grid empty;
-  private Grid columnsOnly;
-  private Grid oneLine;
-  private Grid complex;
-
-  private Spreadsheet sheet;
-
-  private static final String[][] GRID =
-      { { "header" }, { "header" }, { "column" }, { "trailer" }, { "data" }, { "moreData" }, { "footer" } };
-
-  /** setup test grids */
-  @Before
-  public void setup() {
-    empty = new Grid();
-    columnsOnly = new Grid();
-    oneLine = new Grid();
-    complex = new Grid();
-
-    columnsOnly.add(Arrays.asList(GRID[2]));
-    oneLine.add(Arrays.asList(GRID[2]));
-    oneLine.add(Arrays.asList(GRID[4]));
-
-    for (String[] row : GRID) {
-      complex.add(Arrays.asList(row));
-    }
-
-    sheet = new Spreadsheet();
-  }
-
-  /** get rid of test grids */
-  @After
-  public void tearDown() {
-    empty = null;
-    columnsOnly = null;
-    oneLine = null;
-    complex = null;
-  }
+  private Spreadsheet sheet = null;
 
   /** check that we can populate a spreadsheet right away */
   @Test
   public void testSpreadsheetGrid() {
-    sheet = new Spreadsheet(complex).setSkipHeader(2).setSkipFooter(1).setSkipTrailer(1);
+    sheet = createComplexSheet();
     assertNotNull(sheet);
     assertNotNull(sheet.getGrid());
     assertEquals(2, sheet.size());
@@ -66,7 +32,8 @@ public class SpreadsheetTest
   /** check that we can retrieve column names */
   @Test
   public void testGetColumn() {
-    assertEquals(1, sheet.setGrid(oneLine).size());
+    sheet = new Spreadsheet(createSingleRowGrid());
+    assertEquals(1, sheet.size());
     assertEquals("column", sheet.getColumn(0));
     assertNull(sheet.getColumn(20));
     assertNull(sheet.getColumn(-20));
@@ -75,12 +42,13 @@ public class SpreadsheetTest
   /** check if we can determine all columns */
   @Test
   public void testGetColumns() {
-    List<String> columns = sheet.setGrid(columnsOnly).getColumns();
+    sheet = new Spreadsheet();
+    List<String> columns = sheet.setGrid(createColumnsOnlyGrid()).getColumns();
     assertNotNull(columns);
     assertEquals(1, columns.size());
     assertEquals("column", columns.get(0));
 
-    columns = sheet.setGrid(complex).getColumns();
+    columns = sheet.setGrid(createComplexGrid()).getColumns();
     assertNotNull(columns);
     assertEquals(1, columns.size());
     assertEquals("header", columns.get(0));
@@ -90,7 +58,7 @@ public class SpreadsheetTest
     assertEquals(1, columns.size());
     assertEquals("column", columns.get(0));
 
-    columns = sheet.setGrid(empty).getColumns();
+    columns = sheet.setGrid(createEmptyGrid()).getColumns();
     assertNotNull(columns);
     assertEquals(0, columns.size());
   }
@@ -98,14 +66,15 @@ public class SpreadsheetTest
   /** check that we can access the data directly */
   @Test
   public void testGetData() {
+    sheet = new Spreadsheet();
     // start with indirect test
     assertEquals("[], []", sheet.toString());
-    assertEquals("[], []", sheet.setGrid(empty).toString());
-    assertEquals("[column], []", sheet.setGrid(columnsOnly).toString());
-    assertEquals("[column], [[data]]", sheet.setGrid(oneLine).toString());
+    assertEquals("[], []", sheet.setGrid(createEmptyGrid()).toString());
+    assertEquals("[column], []", sheet.setGrid(createColumnsOnlyGrid()).toString());
+    assertEquals("[column], [[data]]", sheet.setGrid(createSingleRowGrid()).toString());
 
     // now access directly with valid data
-    sheet.setGrid(complex).setSkipHeader(2).setSkipFooter(1).setSkipTrailer(1);
+    complexGridIn(sheet);
     List<List<String>> data = sheet.getData();
     assertNotNull(data);
     assertEquals(sheet.size(), data.size());
@@ -116,7 +85,7 @@ public class SpreadsheetTest
     assertEquals("moreData", data.get(1).get(0));
 
     // and now with invalid data
-    sheet.setGrid(oneLine).setSkipHeader(2).setSkipFooter(1).setSkipTrailer(1);
+    sheet.setGrid(createSingleRowGrid()).setSkipHeader(2).setSkipFooter(1).setSkipTrailer(1);
     data = sheet.getData();
     assertNotNull(data);
     assertEquals(sheet.size(), data.size());
@@ -133,11 +102,12 @@ public class SpreadsheetTest
   /** check that determination of first and last data row works fail safe */
   @Test
   public void testGetDataRows() {
+    sheet = new Spreadsheet();
     assertEquals(-1, sheet.setGrid(null).getDataRow());
     assertEquals(-1, sheet.getLastDataRow());
-    assertEquals(1, sheet.setGrid(oneLine).getDataRow());
+    assertEquals(1, sheet.setGrid(createSingleRowGrid()).getDataRow());
     assertEquals(1, sheet.getLastDataRow());
-    assertEquals(1, sheet.setGrid(complex).getDataRow());
+    assertEquals(1, sheet.setGrid(createComplexGrid()).getDataRow());
     assertEquals(6, sheet.getLastDataRow());
     assertEquals(-1, sheet.setSkipHeader(4).setSkipTrailer(4).setSkipFooter(4).getDataRow());
     assertEquals(-1, sheet.getLastDataRow());
@@ -146,18 +116,19 @@ public class SpreadsheetTest
   /** check that we can access any row in a fail safe manner */
   @Test
   public void testGetRow() {
+    sheet = new Spreadsheet();
     // no grid
     List<String> data = sheet.getRow(0);
     assertNotNull(data);
     assertTrue(data.isEmpty());
 
     // empty grid
-    data = sheet.setGrid(empty).getRow(0);
+    data = sheet.setGrid(createEmptyGrid()).getRow(0);
     assertNotNull(data);
     assertTrue(data.isEmpty());
 
     // out of bounds tests
-    data = sheet.setGrid(oneLine).getRow(0);
+    data = sheet.setGrid(createSingleRowGrid()).getRow(0);
     assertNotNull(data);
     assertEquals(1, data.size());
     assertEquals("data", data.get(0));
@@ -184,10 +155,11 @@ public class SpreadsheetTest
   /** check that we can access values individually */
   @Test
   public void testGetValue() {
+    sheet = new Spreadsheet();
     // use positional access
     assertNull(sheet.getValue(0, 0));
-    assertNull(sheet.setGrid(empty).getValue(0, 0));
-    assertEquals("data", sheet.setGrid(complex).setSkipHeader(2).setSkipFooter(1).setSkipTrailer(1).getValue(0, 0));
+    assertNull(sheet.setGrid(createEmptyGrid()).getValue(0, 0));
+    assertEquals("data", complexGridIn(sheet).getValue(0, 0));
     assertEquals("moreData", sheet.getValue(1, 0));
 
     // column out of bounds
@@ -210,7 +182,7 @@ public class SpreadsheetTest
   /** check that we can actually retrieve the column */
   @Test
   public void testIndexOf() {
-    sheet = new Spreadsheet(complex).setSkipHeader(2).setSkipFooter(1).setSkipTrailer(1);
+    sheet = createComplexSheet();
     assertNotNull(sheet);
     assertNotNull(sheet.getGrid());
     assertEquals(2, sheet.size());
@@ -223,10 +195,11 @@ public class SpreadsheetTest
   /** check that we can define the column names ourself */
   @Test
   public void testSetColumn() {
+    sheet = new Spreadsheet(createEmptyGrid());
     // cannot name columns on empty grids
-    assertNull(sheet.setGrid(empty).setColumn(0, "mycolumn").getColumn(0));
+    assertNull(sheet.setColumn(0, "mycolumn").getColumn(0));
     // positive check
-    assertEquals("mycolumn", sheet.setGrid(columnsOnly).setColumn(0, "mycolumn").getColumn(0));
+    assertEquals("mycolumn", sheet.setGrid(createColumnsOnlyGrid()).setColumn(0, "mycolumn").getColumn(0));
     assertEquals(0, sheet.indexOf("mycolumn"));
     assertEquals(-1, sheet.indexOf("column"));
     // out of bounds checks
@@ -237,10 +210,11 @@ public class SpreadsheetTest
   /** check that size is computed correctly */
   @Test
   public void testSize() {
-    assertEquals(0, sheet.setGrid(empty).size());
-    assertEquals(0, sheet.setGrid(columnsOnly).size());
-    assertEquals(1, sheet.setGrid(oneLine).size());
-    assertEquals(6, sheet.setGrid(complex).size());
+    sheet = new Spreadsheet();
+    assertEquals(0, sheet.setGrid(createEmptyGrid()).size());
+    assertEquals(0, sheet.setGrid(createColumnsOnlyGrid()).size());
+    assertEquals(1, sheet.setGrid(createSingleRowGrid()).size());
+    assertEquals(6, sheet.setGrid(createComplexGrid()).size());
     assertEquals(4, sheet.setSkipHeader(2).size());
     assertEquals(3, sheet.setSkipFooter(1).size());
     assertEquals(2, sheet.setSkipTrailer(1).size());
@@ -249,17 +223,27 @@ public class SpreadsheetTest
   /** test that arguments are created correctly */
   @Test
   public void testParameters() {
-    Map<String, String> parameters = sheet.setGrid(empty).getParameters();
+    sheet = new Spreadsheet();
+    Map<String, String> parameters = sheet.setGrid(createEmptyGrid()).getParameters();
     assertNotNull(parameters);
     assertFalse(parameters.isEmpty());
     assertEquals("0", parameters.get("header"));
     assertEquals("0", parameters.get("trailer"));
     assertEquals("0", parameters.get("footer"));
 
-    parameters = sheet.setGrid(complex).setSkipHeader(2).setSkipFooter(1).setSkipTrailer(3).getParameters();
+    parameters = complexGridIn(sheet).setSkipTrailer(3).getParameters();
     assertEquals("2", parameters.get("header"));
     assertEquals("3", parameters.get("trailer"));
     assertEquals("1", parameters.get("footer"));
     assertEquals("Spreadsheet", parameters.get("class"));
+  }
+
+  private Spreadsheet createComplexSheet() {
+    return new Spreadsheet(createComplexGrid()).setSkipHeader(2).setSkipFooter(1).setSkipTrailer(1);
+  }
+  
+  private Spreadsheet complexGridIn(final Spreadsheet sheet) {
+    sheet.setGrid(createComplexGrid()).setSkipHeader(2).setSkipFooter(1).setSkipTrailer(1);
+    return sheet;
   }
 }
