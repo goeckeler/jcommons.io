@@ -119,12 +119,6 @@
 
     <dependency>
       <groupId>org.jcommons</groupId>
-      <artifactId>jcommons-functional</artifactId>
-      <version>1.0.0</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.jcommons</groupId>
       <artifactId>jcommons-lang</artifactId>
       <version>1.0.0</version>
     </dependency>

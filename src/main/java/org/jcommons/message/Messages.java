@@ -5,9 +5,6 @@ import static org.jcommons.message.Flatten.flatten;
 import java.util.*;
 
 import org.apache.commons.lang3.StringUtils;
-import org.jcommons.functional.Functions;
-import org.jcommons.functional.function.UnaryFunction;
-import org.jcommons.functional.predicate.UnaryPredicate;
 
 /**
  * A composite message that collects many message in one go and acts as the default message container.
@@ -109,19 +106,28 @@ public class Messages
   /** {@inheritDoc} */
   @Override
   public final boolean isError() {
-    return Functions.some(Predicates.errorsOnly(), messages);
+    for (Message message : flatten(this)) {
+      if (message.isError()) return true;
+    }
+    return false;
   }
 
   /** {@inheritDoc} */
   @Override
   public final boolean isInfo() {
-    return Functions.some(Predicates.infosOnly(), messages);
+    for (Message message : flatten(this)) {
+      if (message.isInfo()) return true;
+    }
+    return false;
   }
 
   /** {@inheritDoc} */
   @Override
   public final boolean isWarning() {
-    return Functions.some(Predicates.warningsOnly(), messages);
+    for (Message message : flatten(this)) {
+      if (message.isWarning()) return true;
+    }
+    return false;
   }
 
   /** {@inheritDoc} */
@@ -166,146 +172,5 @@ final class Flatten
     }
 
     return messages;
-  }
-}
-
-/**
- * Filter messages.
- * 
- * @author Thorsten Goeckeler
- */
-abstract class MessageFilter
-  implements UnaryPredicate<Message>
-{
-  private boolean includeComposites;
-
-  /** filter on concrete messages only */
-  public MessageFilter() {
-    includeComposites = false;
-  }
-
-  /** @return true if composites shall be included, false otherwise */
-  public final boolean includeComposites() {
-    return includeComposites;
-  }
-
-  /**
-   * Define whether composites are included or not.
-   * 
-   * @param include true to include composites, otherwise false
-   * @return this to allow chaining
-   */
-  public MessageFilter includeComposites(final boolean include) {
-    this.includeComposites = include;
-    return this;
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public boolean execute(final Message argument) {
-    if (argument.isComposite() && !includeComposites()) return false;
-    return filter(argument);
-  }
-
-  /**
-   * Indicates whether to include or exclude a message based on its type.
-   * 
-   * @param message the current message
-   * @return true if the message shall be included, false to exclude it
-   */
-  protected abstract boolean filter(final Message message);
-}
-
-/**
- * Filter on errors only.
- * 
- * @author Thorsten Goeckeler
- */
-class ErrorFilter
-  extends MessageFilter
-{
-  /** {@inheritDoc} */
-  @Override
-  protected boolean filter(final Message message) {
-    return message.isError();
-  }
-}
-
-/**
- * Filter on warnings only.
- * 
- * @author Thorsten Goeckeler
- */
-class WarningFilter
-  extends MessageFilter
-{
-  /** {@inheritDoc} */
-  @Override
-  protected boolean filter(final Message message) {
-    return message.isWarning();
-  }
-}
-
-/**
- * Filter on infos only.
- * 
- * @author Thorsten Goeckeler
- */
-class InfoFilter
-  extends MessageFilter
-{
-  /** {@inheritDoc} */
-  @Override
-  protected boolean filter(final Message message) {
-    return message.isInfo();
-  }
-}
-
-/**
- * Factory to minimize memory overhead on predicate filters.
- * 
- * @author Thorsten Goeckeler
- */
-final class Predicates
-{
-  private static final MessageFilter CONCRETE_ERRORS = new ErrorFilter().includeComposites(false);
-  private static final MessageFilter COMPOSITE_ERRORS = new ErrorFilter().includeComposites(true);
-  private static final MessageFilter CONCRETE_WARNINGS = new WarningFilter().includeComposites(false);
-  private static final MessageFilter COMPOSITE_WARNINGS = new WarningFilter().includeComposites(true);
-  private static final MessageFilter CONCRETE_INFOS = new InfoFilter().includeComposites(false);
-  private static final MessageFilter COMPOSITE_INFOS = new InfoFilter().includeComposites(true);
-
-  /** hide sole constructor */
-  private Predicates() {
-  }
-
-  /** @return filter on concrete errors */
-  public static MessageFilter concreteErrorsOnly() {
-    return CONCRETE_ERRORS;
-  }
-
-  /** @return filter on errors */
-  public static MessageFilter errorsOnly() {
-    return COMPOSITE_ERRORS;
-  }
-
-  /** @return filter on concrete warnings */
-  public static MessageFilter concreteWarningsOnly() {
-    return CONCRETE_WARNINGS;
-  }
-
-  /** @return filter on warnings */
-  public static MessageFilter warningsOnly() {
-    return COMPOSITE_WARNINGS;
-  }
-
-  /** @return filter on concrete infos */
-  public static MessageFilter concreteInfosOnly() {
-    return CONCRETE_INFOS;
-  }
-
-  /** @return filter on infos */
-  public static MessageFilter infosOnly() {
-    return COMPOSITE_INFOS;
   }
 }
