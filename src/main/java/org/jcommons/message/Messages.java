@@ -139,28 +139,6 @@ public class Messages
 }
 
 /**
- * Retrieves the text for a given message.
- * 
- * @author Thorsten Goeckeler
- */
-class ToText
-  implements UnaryFunction<String, Message>
-{
-  private static final ToText INSTANCE = new ToText();
-
-  /** @return a singleton instance to avoid memory overhead */
-  public static ToText toText() {
-    return INSTANCE;
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public String execute(final Message argument) {
-    return argument.getText();
-  }
-}
-
-/**
  * Flatten a message tree so that only concrete messages remain on the top level list.
  * 
  * @author Thorsten Goeckeler
