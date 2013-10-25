@@ -1,7 +1,6 @@
 package org.jcommons.message;
 
 import static org.jcommons.message.Flatten.flatten;
-import static org.jcommons.message.ToText.toText;
 
 import java.util.*;
 
@@ -38,25 +37,35 @@ public class Messages
   @Override
   public final String getFaults() {
     // filter on errors only
-    List<Message> errors = Functions.filter(Predicates.concreteErrorsOnly(), flatten(this));
+    List<Message> errors = new LinkedList<>();
+    for (Message message : flatten(this)) {
+      if (!message.isComposite() && message.isError()) {
+        errors.add(message);
+      }
+    }
     // map errors to their strings
-    return StringUtils.join(Functions.map(toText(), errors), " ");
+    return StringUtils.join(errors, " ");
   }
 
   /** {@inheritDoc} */
   @Override
   public final String getInfos() {
     // filter on infos only
-    List<Message> infos = Functions.filter(Predicates.concreteInfosOnly(), flatten(this));
+    List<Message> infos = new LinkedList<>();
+    for (Message message : flatten(this)) {
+      if (!message.isComposite() && message.isInfo()) {
+        infos.add(message);
+      }
+    }
     // map infos to their strings
-    return StringUtils.join(Functions.map(toText(), infos), " ");
+    return StringUtils.join(infos, " ");
   }
 
   /** {@inheritDoc} */
   @Override
   public final String getText() {
     // map all messages to their strings
-    return StringUtils.join(Functions.map(toText(), messages), " ");
+    return StringUtils.join(messages, " ");
   }
 
   /** {@inheritDoc} */
@@ -75,9 +84,14 @@ public class Messages
   @Override
   public final String getWarnings() {
     // filter on warnings only
-    List<Message> warnings = Functions.filter(Predicates.concreteWarningsOnly(), flatten(this));
+    List<Message> warnings = new LinkedList<>();
+    for (Message message : flatten(this)) {
+      if (!message.isComposite() && message.isWarning()) {
+        warnings.add(message);
+      }
+    }
     // map warnings to their strings
-    return StringUtils.join(Functions.map(toText(), warnings), " ");
+    return StringUtils.join(warnings, " ");
   }
 
   /** {@inheritDoc} */
