@@ -1,28 +1,32 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  
+
+  <!-- required to stage artifacts to Sonatype OSS -->
+  <parent>
+    <groupId>org.sonatype.oss</groupId>
+    <artifactId>oss-parent</artifactId>
+    <version>7</version>
+  </parent>
+
   <groupId>org.jcommons</groupId>
   <artifactId>jcommons-io</artifactId>
   <version>1.0.0-SNAPSHOT</version>
   <packaging>jar</packaging>
-  
+
   <name>jcommons.io</name>
   <description>Java Common Libraries Extensions / I/O File Abstraction</description>
   <url>http://www.jcommons.org</url>
   <scm>
     <url>https://github.com/goeckeler/jcommons.io</url>
-    <connection>https://github.com/goeckeler/jcommons.io</connection>
+    <connection>scm:git:git@github.com:goeckeler/jcommons.io.git</connection>
+    <developerConnection>scm:git:git@github.com:goeckeler/jcommons.io.git</developerConnection>
   </scm>
 
   <!-- Global settings -->
   <properties>
     <!-- default JDK version to be used -->
     <jdk.version>1.7</jdk.version>
-
-    <!-- compiler setup -->
-    <source.jdk.version>${jdk.version}</source.jdk.version>
-    <target.jdk.version>${jdk.version}</target.jdk.version>
     <!-- source file encoding for all files -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
@@ -50,8 +54,17 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.1</version>
         <configuration>
-          <source>${source.jdk.version}</source>
-          <target>${target.jdk.version}</target>
+          <source>${jdk.version}</source>
+          <target>${jdk.version}</target>
+        </configuration>
+      </plugin>
+
+      <!-- support release builds -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-release-plugin</artifactId>
+        <configuration>
+          <mavenExecutorId>forked-path</mavenExecutorId>
         </configuration>
       </plugin>
     </plugins>
@@ -169,7 +182,7 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
-  
+
   <licenses>
     <license>
       <name>The Apache Software License, Version 2.0</name>
@@ -185,4 +198,73 @@
       <email>webmaster@jcommons.org</email>
     </developer>
   </developers>
+
+  <profiles>
+    <!-- mvn release:perform -->
+    <profile>
+      <id>jcommons-release</id>
+      <activation>
+        <property>
+          <!-- automatically set on mvn release -->
+          <name>performRelease</name>
+          <value>true</value>
+        </property>
+      </activation>
+
+      <!-- automatically sign artifacts on release -->
+      <build>
+        <plugins>
+          <!-- also create *-sources.jar -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>2.2.1</version>
+            <executions>
+              <execution>
+                <id>attach-sources</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>jar-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+
+          <!-- also create *.javadoc.jar -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>2.9.1</version>
+            <configuration>
+              <encoding>${project.build.sourceEncoding}</encoding>
+            </configuration>
+            <executions>
+              <execution>
+                <id>attach-docs</id>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          
+          <!-- sign the artifacts -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>1.4</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
